@@ -1,0 +1,50 @@
+name: Build OpenWrt
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+
+      - name: Set up environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git wget curl
+
+      - name: Clone ImmortalWrt repository
+        run: |
+          git clone -b master --single-branch https://github.com/immortalwrt/immortalwrt.git openwrt
+          cd openwrt
+          # 使用适配 NanoPi R3S 的默认配置文件
+          cp $GITHUB_WORKSPACE/build/nanopi_r3s .config
+
+      - name: Install tmate for SSH access
+        run: |
+          sudo apt-get install -y tmate
+          tmate -S /tmp/tmate.sock new-session -d
+          tmate -S /tmp/tmate.sock wait tmate-ready
+          echo "SSH: $(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')"
+          echo "Web: $(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')"
+          echo "如果您未连接SSH，则在1800秒内自动跳过，要立即跳过此步骤，只需连接SSH并退出即可"
+          sleep 1800
+
+      - name: Run make menuconfig
+        run: |
+          cd openwrt
+          make menuconfig
+
+      - name: Build firmware
+        run: |
+          cd openwrt
+          make defconfig
+          make -j$(nproc)
