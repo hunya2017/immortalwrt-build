@@ -28,19 +28,19 @@ jobs:
         tmate -S /tmp/tmate.sock wait tmate-ready
         echo "SSH connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')"
         echo "Web connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')"
-        
-    # 等待用户完成 tmate 会话
-    - name: Wait for tmate session to complete
-      run: |
-        echo "Waiting for tmate session to complete. Please disconnect from the session to continue."
-        tmate -S /tmp/tmate.sock wait tmate-exit
+
 
     # 输出 tmate 连接信息
     - name: Output tmate connection info
       run: |
         echo "SSH connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')"
         echo "Web connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')"
-
+        
+    # 等待用户完成 tmate 会话
+    - name: Wait for tmate session to complete
+      run: |
+        echo "Waiting for tmate session to complete. Please disconnect from the session to continue."
+        tmate -S /tmp/tmate.sock wait tmate-exit
     # 编译 ImmortalWrt
     - name: Build ImmortalWrt
       run: |
