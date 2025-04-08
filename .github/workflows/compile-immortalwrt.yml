@@ -44,6 +44,7 @@ jobs:
     # 输出 tmate 连接信息
     - name: Output tmate connection info
       run: |
+        cd immortalwrt
         echo "SSH connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')"
         echo "Web connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')"
 
@@ -56,6 +57,7 @@ jobs:
     # 编译 ImmortalWrt
     - name: Build ImmortalWrt
       run: |
+        cd immortalwrt
         make -j$(nproc)
 
     # 打包固件
