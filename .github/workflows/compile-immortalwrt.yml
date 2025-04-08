@@ -30,23 +30,45 @@ jobs:
         echo "Web connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')"
 
 
-    # 输出 tmate 连接信息
-    - name: Output tmate connection info
-      run: |
-        echo "SSH connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')"
-        echo "Web connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')"
+
         
-    # 等待用户完成 tmate 会话
-    - name: Wait for tmate session to complete
-      run: |
-        echo "Waiting for tmate session to complete. Please disconnect from the session to continue."
-        tmate -S /tmp/tmate.sock wait tmate-exit
-    # 编译 ImmortalWrt
+
+    # 设置 ImmortalWrt
     - name: Build ImmortalWrt
       run: |
         git clone https://github.com/immortalwrt/immortalwrt.git
         cd immortalwrt
         ./scripts/feeds update -a
         ./scripts/feeds install -a
-        make menuconfig  # 可根据需要调整配置
+
+    # 输出 tmate 连接信息
+    - name: Output tmate connection info
+      run: |
+        echo "SSH connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')"
+        echo "Web connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')"
+
+    # 等待用户完成 tmate 会话
+    - name: Wait for tmate session to complete
+      run: |
+        echo "Waiting for tmate session to complete. Please disconnect from the session to continue."
+        tmate -S /tmp/tmate.sock wait tmate-exit
+
+    # 编译 ImmortalWrt
+    - name: Build ImmortalWrt
+      run: |
         make -j$(nproc)
+
+    # 打包固件
+    - name: Package firmware
+      run: |
+        cd immortalwrt/bin/targets
+        tar -czf firmware.tar.gz *
+
+    # 上传固件到 GitHub Releases
+    - name: Upload firmware to GitHub Releases
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: immortalwrt/bin/targets/firmware.tar.gz
+        asset_name: firmware.tar.gz
+        asset_content_type: application/gzip
