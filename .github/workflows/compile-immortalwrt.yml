@@ -33,28 +33,34 @@ jobs:
         fi
     # 检出代码
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     # 清理磁盘空间
-    - name: Free up disk space
-      run: |
-        sudo apt-get clean
-        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
-        df -h  
+    # - name: Free up disk space
+    #   run: |
+    #     sudo apt-get clean
+    #     sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+    #     df -h  
 
-    # 安装必要的依赖
-    - name: Install dependencies
+
+    - name: 部署编译环境
+      env:
+        DEBIAN_FRONTEND: noninteractive
       run: |
-        chmod +x shells/ubuntu.sh
-        ./shells/ubuntu.sh
-        tar --version  # 验证 tar 是否安装成功
-    # 启动 tmate 会话
-    - name: Start tmate session
-      run: |
-        tmate -S /tmp/tmate.sock new-session -d
-        tmate -S /tmp/tmate.sock wait tmate-ready
-        echo "SSH connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')"
-        echo "Web connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')"
+        sudo -E apt-get -qq update -y
+        sudo -E apt-get -qq install -y gawk git gettext libssl-dev xsltproc zip git-core wget curl grep python2.7 python3 python3-pip libpython3-dev
+        sudo timedatectl set-timezone "$TZ"
+        sudo mkdir -p /${{ env.DIY_WORK }}
+        sudo chown $USER:$GROUPS /${{ env.DIY_WORK }}
+
+
+    # # 启动 tmate 会话
+    # - name: Start tmate session
+    #   run: |
+    #     tmate -S /tmp/tmate.sock new-session -d
+    #     tmate -S /tmp/tmate.sock wait tmate-ready
+    #     echo "SSH connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')"
+    #     echo "Web connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')"
 
 
 
@@ -62,24 +68,29 @@ jobs:
 
     # 设置 ImmortalWrt
     - name: Build ImmortalWrt
+      working-directory: /${{ env.DIY_WORK }}
       run: |
-        git clone https://github.com/immortalwrt/immortalwrt.git
-        cd immortalwrt
+        git clone https://github.com/immortalwrt/immortalwrt.git openwrt
+        cd openwrt
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
-    # 输出 tmate 连接信息
-    - name: Output tmate connection info
-      run: |
-        cd immortalwrt
-        echo "SSH connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')"
-        echo "Web connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')"
+    - name: SSH远程连接（make menuconfig）
+      uses: danshui-git/debugger-action@main
 
-    # 等待用户完成 tmate 会话
-    - name: Wait for tmate session to complete
-      run: |
-        echo "Waiting for tmate session to complete. Please disconnect from the session to continue."
-        tmate -S /tmp/tmate.sock wait tmate-exit
+
+    # # 输出 tmate 连接信息
+    # - name: Output tmate connection info
+    #   run: |
+    #     cd openwrt
+    #     echo "SSH connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')"
+    #     echo "Web connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')"
+
+    # # 等待用户完成 tmate 会话
+    # - name: Wait for tmate session to complete
+    #   run: |
+    #     echo "Waiting for tmate session to complete. Please disconnect from the session to continue."
+    #     tmate -S /tmp/tmate.sock wait tmate-exit
 
     # 编译 ImmortalWrt
     - name: Build ImmortalWrt
