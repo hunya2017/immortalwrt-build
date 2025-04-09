@@ -121,6 +121,9 @@ jobs:
           git init -b main
           git remote add origin https://${{ secrets.REPO_TOKEN }}@github.com/${{ env.GIT_REPOSITORY }}
         fi
+        git fetch origin main || echo "远程分支不存在，跳过拉取"
+        git checkout main || git checkout -b main
+        git merge origin/main --allow-unrelated-histories || echo "没有需要合并的更改"
         git add config.txt
         git commit -m "Add config file" || echo "No changes to commit"
         git push origin main
