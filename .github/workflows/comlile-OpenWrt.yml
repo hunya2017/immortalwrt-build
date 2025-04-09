@@ -84,7 +84,6 @@ jobs:
           mkdir -p ${GITHUB_WORKSPACE}/openwrt/build
         fi
         chmod -R +x ${GITHUB_WORKSPACE}/openwrt/build
-        working-directory: /${{ env.DIY_WORK }}
 
     - name: 更新插件源
       if: env.REPO_TOKEN
@@ -94,11 +93,9 @@ jobs:
         ./scripts/feeds install -a
 
     - name: SSH远程连接（make menuconfig）
-      if: env.SSH_ACTION == 'true'
       uses: danshui-git/debugger-action@main
 
     - name: 上传"${{ matrix.target }}"配置文件在 Github Artifacts
-      if: steps.compile.outcome == 'success'
       uses: actions/upload-artifact@main
       with:
         name: .config_${{ env.SOURCE }}_${{ env.LUCI_EDITION }}_${{ env.TARGET_PROFILE }}_${{ env.Firmware_Date }}
@@ -132,12 +129,12 @@ jobs:
         echo -e "$(nproc) thread compile"
         make -j$(nproc) || make -j1 V=s
         echo "date=$(date "+%Y%m%d%H%M%S")" >> ${GITHUB_ENV}
-        - name: 上传固件在 github Artifacts
-        if: steps.compile.outcome == 'success' && env.UPLOAD_FIRMWARE == 'true'
-        uses: actions/upload-artifact@main
-        with:
-          name: ${{ env.SOURCE }}-${{ env.LUCI_EDITION }}-${{ env.TARGET_PROFILE }}-firmware-${{ env.Firmware_Date }}
-          path: ${{ env.FIRMWARE_PATH }}
+
+    - name: 上传固件在 github Artifacts
+      uses: actions/upload-artifact@main
+      with:
+        name: ${{ env.SOURCE }}-${{ env.LUCI_EDITION }}-${{ env.TARGET_PROFILE }}-firmware-${{ env.Firmware_Date }}
+        path: ${{ env.FIRMWARE_PATH }}
 
     - name: 发布固件
       if: steps.compile.outcome == 'success' && env.UPLOAD_RELEASE == 'true' && env.ING_FIRMWAR == 'true' && env.REPO_TOKEN
