@@ -10,10 +10,30 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     env:
+      GITHUB_LINK: https://github.com/${{github.repository}}
+      GIT_ACTOR: ${{github.actor}}
+      GIT_REPOSITORY: ${{github.repository}}
+      RUN_NUMBER: ${{github.run_number}}
+      RUN_WORKFLOW: ${{github.workflow}}
+      REPO_TOKEN: ${{ secrets.REPO_TOKEN }}
+      TZ: Asia/Shanghai
+    
       PATH: ${{ secrets.PATH }}:$HOME/.cargo/bin:$PATH
 
     steps:
 
+    - name: 密匙检测（密匙为空则退出）
+      run: |
+        cd ${GITHUB_WORKSPACE}
+        if [[ -n "${{ env.REPO_TOKEN }}" ]]; then
+          echo "密匙检测通过，继续执行"
+        elif [[ -z "${{ env.REPO_TOKEN }}" ]]; then
+          echo "您没有设置仓库密匙，请按教程设置好密匙再来"
+          exit 1
+        fi
+    # 检出代码
+    - name: Checkout code
+      uses: actions/checkout@v3
 
     # 清理磁盘空间
     - name: Free up disk space
@@ -35,9 +55,7 @@ jobs:
         tmate -S /tmp/tmate.sock wait tmate-ready
         echo "SSH connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')"
         echo "Web connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')"
-    # 检出代码
-    - name: Checkout code
-      uses: actions/checkout@v3
+
 
 
         
