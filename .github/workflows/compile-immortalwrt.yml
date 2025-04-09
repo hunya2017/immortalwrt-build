@@ -49,6 +49,7 @@ jobs:
           sudo mkdir -p /${{ env.DIY_WORK }}
           sudo chown $USER:$GROUPS /${{ env.DIY_WORK }}
           bash shells/ubuntu.sh 
+          
       # # 启动 tmate 会话
       # - name: Start tmate session
       #   run: |
