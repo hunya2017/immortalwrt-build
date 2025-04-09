@@ -127,7 +127,7 @@ jobs:
 
       # 上传固件到 Github Artifacts
       - name: 上传固件到 Github Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: firmware
           path: immortalwrt/bin/targets/firmware.tar.gz
@@ -141,7 +141,7 @@ jobs:
           allowUpdates: true
           body: ${{ env.Tongzhi_Date }}
           artifacts: "${{ env.FIRMWARE_PATH }}/*"
-          
+
 # 保存生成的文件到仓库
       - name: 保存生成的文件到仓库
         run: |
