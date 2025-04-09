@@ -119,13 +119,13 @@ jobs:
         cd openwrt/build_logo
         if [ ! -d ".git" ]; then
           git init -b main
-          git remote add origin https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ env.GIT_REPOSITORY }}
+          git remote add origin https://${{ secrets.REPO_TOKEN }}@github.com/${{ env.GIT_REPOSITORY }}
         fi
         git add config.txt
         git commit -m "Add config file" || echo "No changes to commit"
         git push origin main
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.REPO_TOKEN }}
 
     - name: 开始编译固件
       run: |
