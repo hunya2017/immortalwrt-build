@@ -111,7 +111,7 @@ jobs:
 
 
     - name: 部署编译环境
-        env:
+      env:
           DEBIAN_FRONTEND: noninteractive
       run: |
           # sudo -E apt-get -qq update -y
