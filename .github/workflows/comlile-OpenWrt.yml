@@ -174,7 +174,6 @@ jobs:
         gh_token: ${{ secrets.REPO_TOKEN }}
         
     - name: 开始编译固件
-        id: compile
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
@@ -187,10 +186,10 @@ jobs:
           name: ${{ env.SOURCE }}-${{ env.LUCI_EDITION }}-${{ env.TARGET_PROFILE }}-firmware-${{ env.Firmware_Date }}
           path: ${{ env.FIRMWARE_PATH }}
       
-      - name: 发布固件
-        if: steps.compile.outcome == 'success' && env.UPLOAD_RELEASE == 'true' && env.ING_FIRMWAR == 'true' && env.REPO_TOKEN
-        uses: ncipollo/release-action@v1
-        with:
+    - name: 发布固件
+      if: steps.compile.outcome == 'success' && env.UPLOAD_RELEASE == 'true' && env.ING_FIRMWAR == 'true' && env.REPO_TOKEN
+      uses: ncipollo/release-action@v1
+      with:
           name: ${{ env.SOURCE }}-${{ env.PROMPT_TING }}
           tag: a${{ env.date }}
           token: ${{ secrets.REPO_TOKEN }}
