@@ -91,6 +91,13 @@ jobs:
           else
             echo "未找到上次编译的配置文件，跳过此步骤"
           fi
+      - name: 设置自定义 LAN IP
+        env:
+          CUSTOM_LAN_IP: 192.168.10.1
+        run: |
+            cd immortalwrt
+            sed -i "s/192.168.1.1/${{ env.CUSTOM_LAN_IP }}/g" package/base-files/files/bin/config_generate
+            echo "已将默认 LAN IP 修改为 ${{ env.CUSTOM_LAN_IP }}"
 
       - name: SSH远程连接（make menuconfig）
         uses: danshui-git/debugger-action@main

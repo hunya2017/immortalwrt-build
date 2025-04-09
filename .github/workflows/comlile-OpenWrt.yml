@@ -1,0 +1,199 @@
+name: Immortalwrt-天灵
+on:
+  workflow_dispatch:
+    inputs:
+      REPO_BRANCH:
+        description: '天灵源码-请选择分支'
+        required: true
+        default: 'openwrt-23.05'
+        type: choice
+        options:
+          - 'openwrt-24.10'
+          - 'openwrt-23.05'
+          - 'openwrt-21.02'
+          - 'openwrt-18.06'
+          - 'openwrt-18.06-k5.4'
+          - 'master'
+      CONFIG_FILE:
+        description: '请选择[seed文件夹内]的配置文件'
+        required: true
+        default: 'x86_64'
+        type: choice
+        options:
+          - 'x86_64'
+          - 'aarch64'
+      INFORMATION_NOTICE:
+        description: 'Telegram或pushplus信息通知'
+        required: true
+        default: '关闭'
+        type: choice
+        options:
+          - '关闭'
+          - 'Telegram'
+          - 'Pushplus'
+      RETAIN_MINUTE:
+        description: '清理[X]分钟之后的所有操作记录(最低30)'
+        required: true
+        default: '10080'
+      SSH_ACTION:
+        description: 'SSH远程配置固件'
+        required: false
+        default: 'false'
+        type: boolean
+      UPLOAD_FIRMWARE:
+        description: '上传固件到 Github Artifacts'
+        required: false
+        default: 'true'
+        type: boolean
+      UPLOAD_RELEASE:
+        description: '发布固件到 Github Releases'
+        required: false
+        default: 'false'
+        type: boolean
+      CACHEWRTBUILD_SWITCH:
+        description: '缓存加速编译'
+        required: false
+        default: 'true'
+        type: boolean
+      UPDATE_FIRMWARE_ONLINE:
+        description: '增加在线更新固件功能/自动打包aarch64系列固件'
+        required: false
+        default: 'true'
+        type: boolean
+      COMPILATION_INFORMATION:
+        description: '是否显示编译信息'
+        required: false
+        default: 'true'
+        type: boolean
+
+
+# 定时触发开启开始编译(把下面两个#去掉开启,时间设置请看定时开启编译说明)
+#  schedule:
+#   - cron: 35 18 * * *
+
+env:
+  GITHUB_LINK: https://github.com/${{github.repository}}
+  GIT_ACTOR: ${{github.actor}}
+  GIT_REPOSITORY: ${{github.repository}}
+  RUN_NUMBER: ${{github.run_number}}
+  RUN_WORKFLOW: ${{github.workflow}}
+  REPO_TOKEN: ${{ secrets.REPO_TOKEN }}
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    name: 启动"${{ matrix.target }}-${{ github.event.inputs.REPO_BRANCH }}"触发编译
+    runs-on: ubuntu-22.04
+    if: ${{ github.event.repository.owner.id }} == ${{ github.event.sender.id }}
+    
+    env:
+      FOLDER_NAME: ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [Immortalwrt]
+        
+        # 请勿对 target: [Immortalwrt] 做任何修改
+        
+    steps:
+    - name: 密匙检测（密匙为空则退出）
+      run: |
+        cd ${GITHUB_WORKSPACE}
+          if [[ -n "${{ env.REPO_TOKEN }}" ]]; then
+            echo "密匙检测通过，继续执行"
+          elif [[ -z "${{ env.REPO_TOKEN }}" ]]; then
+            echo "您没有设置仓库密匙，请按教程设置好密匙再来"
+            exit 1
+          fi
+
+    - name: 准备结束
+      uses: actions/checkout@v4
+
+
+    - name: 部署编译环境
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          # sudo -E apt-get -qq update -y
+          # sudo -E apt-get -qq install -y gawk git gettext libssl-dev xsltproc zip git-core wget curl grep python2.7 python3 python3-pip libpython3-dev
+          # sudo timedatectl set-timezone "$TZ"
+          sudo mkdir -p /${{ env.DIY_WORK }}
+          sudo chown $USER:$GROUPS /${{ env.DIY_WORK }}
+          bash shells/ubuntu.sh 
+    
+    - name: 下载"${{ matrix.target }}-${{ github.event.inputs.REPO_BRANCH }}"源码
+      working-directory: /${{ env.DIY_WORK }}
+      run: |
+        git clone -b "${REPO_BRANCH}" --single-branch https://github.com/immortalwrt/immortalwrt.git openwrt
+        ln -sf /${{ env.DIY_WORK }}/openwrt ${GITHUB_WORKSPACE}/openwrt
+        cp -Rf ${GITHUB_WORKSPACE}/build ${GITHUB_WORKSPACE}/openwrt/build
+        chmod -R +x ${GITHUB_WORKSPACE}/openwrt/build
+
+ 
+    - name: 更新插件源
+      if: env.REPO_TOKEN
+      run: |
+        cd openwrt
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+ 
+    
+    - name: SSH远程连接（make menuconfig）
+      if: env.SSH_ACTION == 'true'
+      uses: danshui-git/debugger-action@main
+
+        
+    - name: 上传"${{ matrix.target }}"配置文件在 Github Artifacts
+      if: steps.compile.outcome == 'success'
+      uses: actions/upload-artifact@main
+      with:
+        name: .config_${{ env.SOURCE }}_${{ env.LUCI_EDITION }}_${{ env.TARGET_PROFILE }}_${{ env.Firmware_Date }}
+        path: openwrt/build_logo/config.txt
+        
+    
+    - name: 清理Actions空间
+      continue-on-error: true
+      if: env.REPO_TOKEN
+      uses: small-5/delete-workflow-runs@main
+      with:
+        token: ${{ secrets.REPO_TOKEN }}
+        repository: ${{ github.repository }}
+        retain_min: ${{ env.RETAIN_MINUTE }}
+    
+    - name: 清理releases
+      continue-on-error: true
+      if: env.REPO_TOKEN
+      uses: ophub/delete-releases-workflows@main
+      with:
+        delete_releases: true
+        releases_keep_keyword: targz/Update
+        releases_keep_latest: ${{ env.KEEP_LATEST }}
+        delete_tags: true
+        delete_workflows: false
+        workflows_keep_day: 90
+        gh_token: ${{ secrets.REPO_TOKEN }}
+        
+    - name: 开始编译固件
+          id: compile
+         run: |
+        cd openwrt
+        echo -e "$(nproc) thread compile"
+        make -j$(nproc) || make -j1 V=s
+        echo "date=$(date "+%Y%m%d%H%M%S")" >> ${GITHUB_ENV}
+        - name: 上传固件在 github Artifacts
+        if: steps.compile.outcome == 'success' && env.UPLOAD_FIRMWARE == 'true'
+        uses: actions/upload-artifact@main
+        with:
+          name: ${{ env.SOURCE }}-${{ env.LUCI_EDITION }}-${{ env.TARGET_PROFILE }}-firmware-${{ env.Firmware_Date }}
+          path: ${{ env.FIRMWARE_PATH }}
+      
+      - name: 发布固件
+        if: steps.compile.outcome == 'success' && env.UPLOAD_RELEASE == 'true' && env.ING_FIRMWAR == 'true' && env.REPO_TOKEN
+        uses: ncipollo/release-action@v1
+        with:
+          name: ${{ env.SOURCE }}-${{ env.PROMPT_TING }}
+          tag: a${{ env.date }}
+          token: ${{ secrets.REPO_TOKEN }}
+          allowUpdates: true
+          body: ${{ env.Tongzhi_Date }}
+          artifacts: "${{ env.FIRMWARE_PATH }}/*" 

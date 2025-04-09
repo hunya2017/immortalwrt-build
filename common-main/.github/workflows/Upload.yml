@@ -1,0 +1,71 @@
+
+name: Upload
+on:
+  repository_dispatch:
+  workflow_dispatch:
+  
+  schedule:
+   - cron: 40 3 * * 6
+
+env:
+  REPO_TOKEN: ${{ secrets.REPO_TOKEN }}
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: Ubuntu-22.04
+    name: Upload
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Initialization environment
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo -E apt-get -qq update
+        sudo -E apt-get -qq install -y git subversion git-core wget curl grep
+        sudo timedatectl set-timezone "$TZ"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
+          
+    - name: Organize data
+      if: env.REPO_TOKEN
+      run: |
+        cd $GITHUB_WORKSPACE
+        git clone https://github.com/${{github.repository}}.git $GITHUB_WORKSPACE/repogx
+        
+        git clone https://github.com/coolsnowwolf/lede $GITHUB_WORKSPACE/Lede
+        git clone https://github.com/Lienol/openwrt $GITHUB_WORKSPACE/Lienol
+        git clone https://github.com/immortalwrt/immortalwrt $GITHUB_WORKSPACE/Immortalwrt
+        git clone https://github.com/openwrt/openwrt $GITHUB_WORKSPACE/Official
+        git clone https://github.com/x-wrt/x-wrt $GITHUB_WORKSPACE/Xwrt
+        git clone https://github.com/padavanonly/immortalwrt-mt798x-24.10 $GITHUB_WORKSPACE/Mt798x
+        echo "" >$GITHUB_WORKSPACE/123
+        
+        cd $GITHUB_WORKSPACE/Lede
+        git branch -r |sed '/HEAD/d' |sed 's/openwrt-//g' |sed 's/master/23.05/g' |sed 's/$/-Lede\"/' |sed 's/origin\//=\"/g' >>$GITHUB_WORKSPACE/123
+        cd $GITHUB_WORKSPACE/Lienol
+        git branch -r |sed '/HEAD/d' |sed 's/openwrt-//g' |sed 's/$/-Lienol\"/' |sed 's/origin\//=\"/g' >>$GITHUB_WORKSPACE/123
+        cd $GITHUB_WORKSPACE/Immortalwrt
+        git branch -r |sed '/HEAD/d' |sed 's/openwrt-//g' |sed 's/$/-Immortalwrt\"/' |sed 's/origin\//=\"/g' >>$GITHUB_WORKSPACE/123
+        cd $GITHUB_WORKSPACE/Official
+        git branch -r |sed '/HEAD/d' |sed 's/openwrt-//g' |sed 's/$/-Official\"/' |sed 's/origin\//=\"/g' >>$GITHUB_WORKSPACE/123
+        cd $GITHUB_WORKSPACE/Xwrt
+        git branch -r |sed '/HEAD/d' |sed 's/openwrt-//g' |sed 's/$/-Xwrt\"/' |sed 's/origin\//=\"/g' >>$GITHUB_WORKSPACE/123
+        cd $GITHUB_WORKSPACE/Mt798x
+        git branch -r |sed '/HEAD/d' |sed 's/openwrt-//g' |sed 's/$/-Mt798x\"/' |sed 's/origin\//=\"/g' >>$GITHUB_WORKSPACE/123
+        cd $GITHUB_WORKSPACE
+        cat $GITHUB_WORKSPACE/123 |sed '/^$/d' |awk '$0=NR$0' |sed 's/^/R/' |sed 's/2410/24.10/' |sed s/[[:space:]]//g >$GITHUB_WORKSPACE/repogx/autoupdate/replace
+        
+    - name: Upload
+      continue-on-error: true
+      if: env.REPO_TOKEN
+      run: |
+        cd $GITHUB_WORKSPACE
+        chmod -R 775 repogx
+        cd repogx
+        git add .
+        git commit -m "up"
+        git push --quiet "https://${{ secrets.REPO_TOKEN }}@github.com/${{github.repository}}" HEAD:main
