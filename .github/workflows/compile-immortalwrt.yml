@@ -59,7 +59,6 @@ jobs:
 
       # 设置 ImmortalWrt
       - name: Build openwrt
-        working-directory: /${{ env.DIY_WORK }}
         run: |
           git clone https://github.com/immortalwrt/immortalwrt.git
           cd immortalwrt
