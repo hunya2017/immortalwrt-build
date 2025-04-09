@@ -174,7 +174,7 @@ jobs:
         gh_token: ${{ secrets.REPO_TOKEN }}
         
     - name: 开始编译固件
-          id: compile
+        id: compile
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
