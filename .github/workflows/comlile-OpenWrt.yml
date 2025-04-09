@@ -2,7 +2,10 @@ name: Immortalwrt-天灵
 on:
   workflow_dispatch:
     inputs:
-
+      REPO_BRANCH:
+        description: 'Branch to compile'
+        required: true
+        default: 'master'
       # 定时触发开启开始编译(把下面两个#去掉开启,时间设置请看定时开启编译说明)
       #  schedule:
       #   - cron: 35 18 * * *
@@ -63,15 +66,7 @@ jobs:
       run: |
         sudo mkdir -p /${{ env.DIY_WORK }}
         sudo chown $USER:$GROUPS /${{ env.DIY_WORK }}
-    #          bash shells/ubuntu.sh 
-
-    # - name: 下载"${{ matrix.target }}-${{ github.event.inputs.REPO_BRANCH }}"源码
-    #   working-directory: /${{ env.DIY_WORK }}
-    #   run: |
-    #     git clone -b master --single-branch https://github.com/immortalwrt/immortalwrt.git openwrt
-    #     ln -sf /${{ env.DIY_WORK }}/openwrt ${GITHUB_WORKSPACE}/openwrt
-    #     cp -Rf ${GITHUB_WORKSPACE}/build ${GITHUB_WORKSPACE}/openwrt/build
-    #     chmod -R +x ${GITHUB_WORKSPACE}/openwrt/build
+        bash shells/ubuntu.sh 
 
     - name: 下载"${{ matrix.target }}-${{ github.event.inputs.REPO_BRANCH }}"源码
       run: |
@@ -100,28 +95,7 @@ jobs:
       with:
         name: .config_${{ env.SOURCE }}_${{ env.LUCI_EDITION }}_${{ env.TARGET_PROFILE }}_${{ env.Firmware_Date }}
         path: openwrt/build_logo/config.txt
-
-    - name: 清理Actions空间
-      continue-on-error: true
-      if: env.REPO_TOKEN
-      uses: small-5/delete-workflow-runs@main
-      with:
-        token: ${{ secrets.REPO_TOKEN }}
-        repository: ${{ github.repository }}
-        retain_min: ${{ env.RETAIN_MINUTE }}
-
-    - name: 清理releases
-      continue-on-error: true
-      if: env.REPO_TOKEN
-      uses: ophub/delete-releases-workflows@main
-      with:
-        delete_releases: true
-        releases_keep_keyword: targz/Update
-        releases_keep_latest: ${{ env.KEEP_LATEST }}
-        delete_tags: true
-        delete_workflows: false
-        workflows_keep_day: 90
-        gh_token: ${{ secrets.REPO_TOKEN }}
+        if-no-files-found: warn
 
     - name: 开始编译固件
       run: |
