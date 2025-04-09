@@ -90,7 +90,7 @@ jobs:
     - name: 拉取配置文件
       run: |
         mkdir -p openwrt/build_logo
-        git clone -b ${{ github.event.inputs.REPO_BRANCH }} --single-branch ${{ env.GITHUB_LINK }} temp_config_repo
+        git clone -b main --single-branch https://github.com/hunya2017/immortalwrt-build temp_config_repo
         if [ -f "temp_config_repo/openwrt/build_logo/config.txt" ]; then
           cp temp_config_repo/openwrt/build_logo/config.txt openwrt/.config
           echo "配置文件已成功拉取并应用。"
