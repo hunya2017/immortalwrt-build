@@ -13,9 +13,7 @@ jobs:
       PATH: ${{ secrets.PATH }}:$HOME/.cargo/bin:$PATH
 
     steps:
-    # 检出代码
-    - name: Checkout code
-      uses: actions/checkout@v3
+
 
     # 清理磁盘空间
     - name: Free up disk space
@@ -37,7 +35,9 @@ jobs:
         tmate -S /tmp/tmate.sock wait tmate-ready
         echo "SSH connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')"
         echo "Web connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')"
-
+    # 检出代码
+    - name: Checkout code
+      uses: actions/checkout@v3
 
 
         
