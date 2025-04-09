@@ -87,8 +87,38 @@ jobs:
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
+    - name: 拉取配置文件
+      run: |
+        mkdir -p openwrt/build_logo
+        git clone -b ${{ github.event.inputs.REPO_BRANCH }} --single-branch ${{ env.GITHUB_LINK }} temp_config_repo
+        if [ -f "temp_config_repo/openwrt/build_logo/config.txt" ]; then
+          cp temp_config_repo/openwrt/build_logo/config.txt openwrt/.config
+          echo "配置文件已成功拉取并应用。"
+        else
+          echo "未找到配置文件，使用默认配置。"
+        fi
+        rm -rf temp_config_repo
+
     - name: SSH远程连接（make menuconfig）
       uses: danshui-git/debugger-action@main
+
+    - name: 保存配置文件
+      run: |
+        mkdir -p openwrt/build_logo
+        cp .config openwrt/build_logo/config.txt
+
+    - name: 提交配置文件到仓库
+      run: |
+        git config --global user.name "${{ env.GIT_ACTOR }}"
+        git config --global user.email "${{ env.GIT_ACTOR }}@users.noreply.github.com"
+        cd openwrt/build_logo
+        git init
+        git remote add origin ${{ env.GITHUB_LINK }}
+        git add config.txt
+        git commit -m "Add config file"
+        git push origin ${{ github.event.inputs.REPO_BRANCH }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: 开始编译固件
       run: |
