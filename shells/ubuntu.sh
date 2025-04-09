@@ -44,6 +44,9 @@ sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 60 --slave /
 gcc --version
 g++ --version
 clang --version
+# 检查 tar 是否安装成功
+tar --version || { echo "Error: tar is not installed or not in PATH"; exit 1; }
+}
 }
 
 function update_apt_source(){
