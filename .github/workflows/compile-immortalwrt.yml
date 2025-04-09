@@ -80,6 +80,18 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
+      # 应用上次编译的配置
+      - name: 应用上次编译的配置
+        run: |
+          cd immortalwrt
+          if [ -f ../saved_artifacts/config.txt ]; then
+            cp ../saved_artifacts/config.txt .config
+            make defconfig
+            echo "已成功应用上次编译的配置"
+          else
+            echo "未找到上次编译的配置文件，跳过此步骤"
+          fi
+
       - name: SSH远程连接（make menuconfig）
         uses: danshui-git/debugger-action@main
 
@@ -113,11 +125,32 @@ jobs:
           cd immortalwrt/bin/targets
           tar -czf firmware.tar.gz *
 
-      # 上传固件到 GitHub Releases
-      - name: Upload firmware to GitHub Releases
-        uses: actions/upload-release-asset@v1
+      # 上传固件到 Github Artifacts
+      - name: 上传固件到 Github Artifacts
+        uses: actions/upload-artifact@v3
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: immortalwrt/bin/targets/firmware.tar.gz
-          asset_name: firmware.tar.gz
-          asset_content_type: application/gzip
+          name: firmware
+          path: immortalwrt/bin/targets/firmware.tar.gz
+
+      - name: 发布固件
+        uses: ncipollo/release-action@v1
+        with:
+          name: ${{ env.SOURCE }}-${{ env.PROMPT_TING }}
+          tag: a${{ env.date }}
+          token: ${{ secrets.REPO_TOKEN }}
+          allowUpdates: true
+          body: ${{ env.Tongzhi_Date }}
+          artifacts: "${{ env.FIRMWARE_PATH }}/*"
+          
+# 保存生成的文件到仓库
+      - name: 保存生成的文件到仓库
+        run: |
+          git config --global user.name "${{ env.GIT_ACTOR }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git checkout -b artifacts || git switch artifacts
+          mkdir -p saved_artifacts
+          cp immortalwrt/build_logo/config.txt saved_artifacts/
+          cp immortalwrt/bin/targets/firmware.tar.gz saved_artifacts/
+          git add saved_artifacts/
+          git commit -m "保存编译文件: 配置文件和固件"
+          git push origin artifacts
