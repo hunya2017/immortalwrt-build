@@ -47,7 +47,7 @@ clang --version
 # 检查 tar 是否安装成功
 tar --version || { echo "Error: tar is not installed or not in PATH"; exit 1; }
 }
-}
+
 
 function update_apt_source(){
 ${INS} autoremove --purge

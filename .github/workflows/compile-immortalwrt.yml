@@ -58,7 +58,7 @@ jobs:
       #     echo "Web connection: $(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')"
 
       # 设置 ImmortalWrt
-      - name: Build ImmortalWrt
+      - name: Build openwrt
         working-directory: /${{ env.DIY_WORK }}
         run: |
           git clone https://github.com/immortalwrt/immortalwrt.git openwrt
@@ -85,13 +85,13 @@ jobs:
       # 编译 ImmortalWrt
       - name: Build ImmortalWrt
         run: |
-          cd immortalwrt
+          cd openwrt
           make -j1 V=s
 
       # 打包固件
       - name: Package firmware
         run: |
-          cd immortalwrt/bin/targets
+          cd openwrt/bin/targets
           tar -czf firmware.tar.gz *
 
       # 上传固件到 GitHub Releases
@@ -99,6 +99,6 @@ jobs:
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: immortalwrt/bin/targets/firmware.tar.gz
+          asset_path: openwrt/bin/targets/firmware.tar.gz
           asset_name: firmware.tar.gz
           asset_content_type: application/gzip
