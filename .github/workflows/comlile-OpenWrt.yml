@@ -117,10 +117,12 @@ jobs:
         git config --global user.name "${{ env.GIT_ACTOR }}"
         git config --global user.email "${{ env.GIT_ACTOR }}@users.noreply.github.com"
         cd openwrt/build_logo
-        git init -b main
-        git remote add origin ${{ env.GITHUB_LINK }}
+        if [ ! -d ".git" ]; then
+          git init -b main
+          git remote add origin https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ env.GIT_REPOSITORY }}
+        fi
         git add config.txt
-        git commit -m "Add config file"
+        git commit -m "Add config file" || echo "No changes to commit"
         git push origin main
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
