@@ -111,7 +111,7 @@ jobs:
 
 
     - name: 部署编译环境
-        env:
+      env:
           DEBIAN_FRONTEND: noninteractive
       run: |
           # sudo -E apt-get -qq update -y
@@ -175,7 +175,7 @@ jobs:
         
     - name: 开始编译固件
           id: compile
-         run: |
+      run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
         make -j$(nproc) || make -j1 V=s
