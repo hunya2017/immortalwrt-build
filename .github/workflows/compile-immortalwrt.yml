@@ -1,10 +1,10 @@
 name: Build ImmortalWrt
 
 on:
-  # push:
-  #   branches:
-  #     - main
-  # pull_request:
+  push:
+    branches:
+      - main
+  pull_request:
   workflow_dispatch:
 jobs:
   build:
@@ -38,18 +38,18 @@ jobs:
       #     sudo apt-get clean
       #     sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
       #     df -h
-      - name: 释放Ubuntu磁盘空间
-        uses: endersonmenezes/free-disk-space@v2
-        with:
-          remove_android: true
-          remove_dotnet: true
-          remove_haskell: true
-          remove_tool_cache: true
-          remove_swap: true
-          remove_packages: "azure-cli google-cloud-cli microsoft-edge-stable google-chrome-stable firefox postgresql* temurin-* *llvm* mysql* dotnet-sdk-*"
-          remove_packages_one_command: true
-          remove_folders: "/usr/share/swift /usr/share/miniconda /usr/share/az* /usr/share/glade* /usr/local/lib/node_modules /usr/local/share/chromium /usr/local/share/powershell"
-          testing: false
+    - name: 释放Ubuntu磁盘空间
+      uses: endersonmenezes/free-disk-space@v2
+      with:
+        remove_android: true
+        remove_dotnet: true
+        remove_haskell: true
+        remove_tool_cache: true
+        remove_swap: true
+        remove_packages: "azure-cli google-cloud-cli microsoft-edge-stable google-chrome-stable firefox postgresql* temurin-* *llvm* mysql* dotnet-sdk-*"
+        remove_packages_one_command: true
+        remove_folders: "/usr/share/swift /usr/share/miniconda /usr/share/az* /usr/share/glade* /usr/local/lib/node_modules /usr/local/share/chromium /usr/local/share/powershell"
+        testing: false
         
 
 
@@ -80,25 +80,6 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      # 应用上次编译的配置
-      - name: 应用上次编译的配置
-        run: |
-          cd immortalwrt
-          if [ -f ../saved_artifacts/config.txt ]; then
-            cp ../saved_artifacts/config.txt .config
-            make defconfig
-            echo "已成功应用上次编译的配置"
-          else
-            echo "未找到上次编译的配置文件，跳过此步骤"
-          fi
-      - name: 设置自定义 LAN IP
-        env:
-          CUSTOM_LAN_IP: 192.168.10.1
-        run: |
-            cd immortalwrt
-            sed -i "s/192.168.1.1/${{ env.CUSTOM_LAN_IP }}/g" package/base-files/files/bin/config_generate
-            echo "已将默认 LAN IP 修改为 ${{ env.CUSTOM_LAN_IP }}"
-
       - name: SSH远程连接（make menuconfig）
         uses: danshui-git/debugger-action@main
 
@@ -114,12 +95,7 @@ jobs:
       #   run: |
       #     echo "Waiting for tmate session to complete. Please disconnect from the session to continue."
       #     tmate -S /tmp/tmate.sock wait tmate-exit
-      - name: 上传配置文件在 Github Artifacts
-        uses: actions/upload-artifact@main
-        with:
-          name: .config_${{ env.SOURCE }}_${{ env.LUCI_EDITION }}_${{ env.TARGET_PROFILE }}_${{ env.Firmware_Date }}
-          path: immortalwrt/build_logo/config.txt
-        
+
       # 编译 ImmortalWrt
       - name: Build ImmortalWrt
         run: |
@@ -132,32 +108,11 @@ jobs:
           cd immortalwrt/bin/targets
           tar -czf firmware.tar.gz *
 
-      # 上传固件到 Github Artifacts
-      - name: 上传固件到 Github Artifacts
-        uses: actions/upload-artifact@v4
+      # 上传固件到 GitHub Releases
+      - name: Upload firmware to GitHub Releases
+        uses: actions/upload-release-asset@v1
         with:
-          name: firmware
-          path: immortalwrt/bin/targets/firmware.tar.gz
-
-      - name: 发布固件
-        uses: ncipollo/release-action@v1
-        with:
-          name: ${{ env.SOURCE }}-${{ env.PROMPT_TING }}
-          tag: a${{ env.date }}
-          token: ${{ secrets.REPO_TOKEN }}
-          allowUpdates: true
-          body: ${{ env.Tongzhi_Date }}
-          artifacts: "${{ env.FIRMWARE_PATH }}/*"
-
-# 保存生成的文件到仓库
-      - name: 保存生成的文件到仓库
-        run: |
-          git config --global user.name "${{ env.GIT_ACTOR }}"
-          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
-          git checkout -b artifacts || git switch artifacts
-          mkdir -p saved_artifacts
-          cp immortalwrt/build_logo/config.txt saved_artifacts/
-          cp immortalwrt/bin/targets/firmware.tar.gz saved_artifacts/
-          git add saved_artifacts/
-          git commit -m "保存编译文件: 配置文件和固件"
-          git push origin artifacts
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: immortalwrt/bin/targets/firmware.tar.gz
+          asset_name: firmware.tar.gz
+          asset_content_type: application/gzip
