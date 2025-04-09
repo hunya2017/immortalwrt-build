@@ -2,11 +2,10 @@ name: Immortalwrt-天灵
 on:
   workflow_dispatch:
     inputs:
-      
 
-# 定时触发开启开始编译(把下面两个#去掉开启,时间设置请看定时开启编译说明)
-#  schedule:
-#   - cron: 35 18 * * *
+      # 定时触发开启开始编译(把下面两个#去掉开启,时间设置请看定时开启编译说明)
+      #  schedule:
+      #   - cron: 35 18 * * *
 
 env:
   GITHUB_LINK: https://github.com/${{github.repository}}
@@ -22,16 +21,15 @@ jobs:
     name: 启动"${{ matrix.target }}-${{ github.event.inputs.REPO_BRANCH }}"触发编译
     runs-on: ubuntu-22.04
     if: ${{ github.event.repository.owner.id }} == ${{ github.event.sender.id }}
-    
+
     env:
       FOLDER_NAME: ${{ matrix.target }}
     strategy:
       fail-fast: false
       matrix:
-        target: [Immortalwrt]
-        
+        target: [ Immortalwrt ]
         # 请勿对 target: [Immortalwrt] 做任何修改
-        
+
     steps:
     - name: 密匙检测（密匙为空则退出）
       run: |
@@ -61,12 +59,12 @@ jobs:
 
     - name: 部署编译环境
       env:
-          DEBIAN_FRONTEND: noninteractive
+        DEBIAN_FRONTEND: noninteractive
       run: |
-          sudo mkdir -p /${{ env.DIY_WORK }}
-          sudo chown $USER:$GROUPS /${{ env.DIY_WORK }}
-#          bash shells/ubuntu.sh 
-    
+        sudo mkdir -p /${{ env.DIY_WORK }}
+        sudo chown $USER:$GROUPS /${{ env.DIY_WORK }}
+    #          bash shells/ubuntu.sh 
+
     # - name: 下载"${{ matrix.target }}-${{ github.event.inputs.REPO_BRANCH }}"源码
     #   working-directory: /${{ env.DIY_WORK }}
     #   run: |
@@ -74,40 +72,38 @@ jobs:
     #     ln -sf /${{ env.DIY_WORK }}/openwrt ${GITHUB_WORKSPACE}/openwrt
     #     cp -Rf ${GITHUB_WORKSPACE}/build ${GITHUB_WORKSPACE}/openwrt/build
     #     chmod -R +x ${GITHUB_WORKSPACE}/openwrt/build
+
     - name: 下载"${{ matrix.target }}-${{ github.event.inputs.REPO_BRANCH }}"源码
-    working-directory: /${{ env.DIY_WORK }}
-    run: |
+      run: |
         git clone -b master --single-branch https://github.com/immortalwrt/immortalwrt.git openwrt
         ln -sf /${{ env.DIY_WORK }}/openwrt ${GITHUB_WORKSPACE}/openwrt
         if [ -d "${GITHUB_WORKSPACE}/build" ]; then
-        cp -Rf ${GITHUB_WORKSPACE}/build ${GITHUB_WORKSPACE}/openwrt/build
+          cp -Rf ${GITHUB_WORKSPACE}/build ${GITHUB_WORKSPACE}/openwrt/build
         else
-        echo "Warning: ${GITHUB_WORKSPACE}/build does not exist. Skipping copy."
-        mkdir -p ${GITHUB_WORKSPACE}/openwrt/build
+          echo "Warning: ${GITHUB_WORKSPACE}/build does not exist. Skipping copy."
+          mkdir -p ${GITHUB_WORKSPACE}/openwrt/build
         fi
         chmod -R +x ${GITHUB_WORKSPACE}/openwrt/build
- 
+        working-directory: /${{ env.DIY_WORK }}
+
     - name: 更新插件源
       if: env.REPO_TOKEN
       run: |
         cd openwrt
         ./scripts/feeds update -a
         ./scripts/feeds install -a
- 
-    
+
     - name: SSH远程连接（make menuconfig）
       if: env.SSH_ACTION == 'true'
       uses: danshui-git/debugger-action@main
 
-        
     - name: 上传"${{ matrix.target }}"配置文件在 Github Artifacts
       if: steps.compile.outcome == 'success'
       uses: actions/upload-artifact@main
       with:
         name: .config_${{ env.SOURCE }}_${{ env.LUCI_EDITION }}_${{ env.TARGET_PROFILE }}_${{ env.Firmware_Date }}
         path: openwrt/build_logo/config.txt
-        
-    
+
     - name: 清理Actions空间
       continue-on-error: true
       if: env.REPO_TOKEN
@@ -116,7 +112,7 @@ jobs:
         token: ${{ secrets.REPO_TOKEN }}
         repository: ${{ github.repository }}
         retain_min: ${{ env.RETAIN_MINUTE }}
-    
+
     - name: 清理releases
       continue-on-error: true
       if: env.REPO_TOKEN
@@ -129,7 +125,7 @@ jobs:
         delete_workflows: false
         workflows_keep_day: 90
         gh_token: ${{ secrets.REPO_TOKEN }}
-        
+
     - name: 开始编译固件
       run: |
         cd openwrt
@@ -142,14 +138,14 @@ jobs:
         with:
           name: ${{ env.SOURCE }}-${{ env.LUCI_EDITION }}-${{ env.TARGET_PROFILE }}-firmware-${{ env.Firmware_Date }}
           path: ${{ env.FIRMWARE_PATH }}
-      
+
     - name: 发布固件
       if: steps.compile.outcome == 'success' && env.UPLOAD_RELEASE == 'true' && env.ING_FIRMWAR == 'true' && env.REPO_TOKEN
       uses: ncipollo/release-action@v1
       with:
-          name: ${{ env.SOURCE }}-${{ env.PROMPT_TING }}
-          tag: a${{ env.date }}
-          token: ${{ secrets.REPO_TOKEN }}
-          allowUpdates: true
-          body: ${{ env.Tongzhi_Date }}
-          artifacts: "${{ env.FIRMWARE_PATH }}/*" 
+        name: ${{ env.SOURCE }}-${{ env.PROMPT_TING }}
+        tag: a${{ env.date }}
+        token: ${{ secrets.REPO_TOKEN }}
+        allowUpdates: true
+        body: ${{ env.Tongzhi_Date }}
+        artifacts: "${{ env.FIRMWARE_PATH }}/*"
